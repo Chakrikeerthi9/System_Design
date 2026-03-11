@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 import redis.asyncio as redis
 import time
@@ -8,32 +7,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(
-    title="Multi-Strategy Rate Limiter API",
-    description="Production-grade rate limiter with Fixed Window, Sliding Window, and Token Bucket strategies",
-    version="1.0.0"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter()
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
 
 async def get_redis():
     return redis.from_url(REDIS_URL, decode_responses=True)
 
-# ─── Strategy 1: Fixed Window ───────────────────────────────────────────────
+
+# ─── Strategy 1: Fixed Window ────────────────────────────────────────────────
 async def fixed_window(r, key: str, limit: int, window: int):
-    """
-    Fixed Window: Resets counter every N seconds.
-    Simple but allows burst at window boundaries.
-    Used by: Basic APIs, free-tier quotas
-    """
     current = int(time.time())
     window_key = f"fw:{key}:{current // window}"
     ttl = window - (current % window)
@@ -56,13 +40,8 @@ async def fixed_window(r, key: str, limit: int, window: int):
     }
 
 
-# ─── Strategy 2: Sliding Window ─────────────────────────────────────────────
+# ─── Strategy 2: Sliding Window ──────────────────────────────────────────────
 async def sliding_window(r, key: str, limit: int, window: int):
-    """
-    Sliding Window: Tracks requests in a rolling time window.
-    Smooth limiting, no boundary bursts.
-    Used by: GitHub API, Stripe, most production APIs
-    """
     now = time.time()
     window_start = now - window
     sw_key = f"sw:{key}"
@@ -88,13 +67,8 @@ async def sliding_window(r, key: str, limit: int, window: int):
     }
 
 
-# ─── Strategy 3: Token Bucket ────────────────────────────────────────────────
+# ─── Strategy 3: Token Bucket ─────────────────────────────────────────────────
 async def token_bucket(r, key: str, capacity: int, refill_rate: float):
-    """
-    Token Bucket: Allows burst up to capacity, refills at steady rate.
-    Burst-friendly — great for real-time APIs.
-    Used by: AWS, Twilio, Cloudflare
-    """
     tb_key = f"tb:{key}"
     now = time.time()
 
@@ -130,17 +104,13 @@ async def token_bucket(r, key: str, capacity: int, refill_rate: float):
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
-@app.get("/")
+@router.get("/")
 async def root():
-    return {"message": "Multi-Strategy Rate Limiter API", "docs": "/docs"}
+    return {"project": "Rate Limiter", "strategies": ["fixed-window", "sliding-window", "token-bucket"]}
 
 
-@app.post("/api/fixed-window")
+@router.post("/fixed-window")
 async def test_fixed_window(request: Request):
-    """
-    Fixed Window — 10 requests per 60 seconds per IP.
-    Resets hard at window boundary.
-    """
     ip = request.client.host
     r = await get_redis()
     result = await fixed_window(r, ip, limit=10, window=60)
@@ -154,21 +124,13 @@ async def test_fixed_window(request: Request):
 
     if not result["allowed"]:
         headers["Retry-After"] = str(result["retry_after"])
-        return JSONResponse(
-            status_code=429,
-            content={"error": "Rate limit exceeded", "detail": result},
-            headers=headers
-        )
+        return JSONResponse(status_code=429, content={"error": "Rate limit exceeded", "detail": result}, headers=headers)
 
     return JSONResponse(content={"success": True, "detail": result}, headers=headers)
 
 
-@app.post("/api/sliding-window")
+@router.post("/sliding-window")
 async def test_sliding_window(request: Request):
-    """
-    Sliding Window — 10 requests per 60 seconds per IP.
-    Smooth rolling window, no boundary bursts.
-    """
     ip = request.client.host
     r = await get_redis()
     result = await sliding_window(r, ip, limit=10, window=60)
@@ -181,21 +143,13 @@ async def test_sliding_window(request: Request):
 
     if not result["allowed"]:
         headers["Retry-After"] = str(result["retry_after"])
-        return JSONResponse(
-            status_code=429,
-            content={"error": "Rate limit exceeded", "detail": result},
-            headers=headers
-        )
+        return JSONResponse(status_code=429, content={"error": "Rate limit exceeded", "detail": result}, headers=headers)
 
     return JSONResponse(content={"success": True, "detail": result}, headers=headers)
 
 
-@app.post("/api/token-bucket")
+@router.post("/token-bucket")
 async def test_token_bucket(request: Request):
-    """
-    Token Bucket — capacity of 10, refills at 0.2 tokens/sec.
-    Allows bursts, then throttles gracefully.
-    """
     ip = request.client.host
     r = await get_redis()
     result = await token_bucket(r, ip, capacity=10, refill_rate=0.2)
@@ -208,37 +162,26 @@ async def test_token_bucket(request: Request):
 
     if not result["allowed"]:
         headers["Retry-After"] = str(result["retry_after"])
-        return JSONResponse(
-            status_code=429,
-            content={"error": "Rate limit exceeded", "detail": result},
-            headers=headers
-        )
+        return JSONResponse(status_code=429, content={"error": "Rate limit exceeded", "detail": result}, headers=headers)
 
     return JSONResponse(content={"success": True, "detail": result}, headers=headers)
 
 
-@app.get("/api/stats")
+@router.get("/stats")
 async def get_stats(request: Request):
-    """
-    Returns current rate limit state for all strategies for this IP.
-    Used by dashboard for live polling.
-    """
     ip = request.client.host
     r = await get_redis()
     now = time.time()
     window = 60
 
-    # Fixed window stats
     current = int(now)
     fw_key = f"fw:{ip}:{current // window}"
     fw_count = int(await r.get(fw_key) or 0)
 
-    # Sliding window stats
     sw_key = f"sw:{ip}"
     await r.zremrangebyscore(sw_key, 0, now - window)
     sw_count = await r.zcard(sw_key)
 
-    # Token bucket stats
     tb_key = f"tb:{ip}"
     tb_data = await r.hgetall(tb_key)
     if tb_data:
@@ -252,7 +195,7 @@ async def get_stats(request: Request):
     return {
         "ip": ip,
         "timestamp": now,
-        "fixed_window": {"count": fw_count, "limit": 10, "remaining": max(0, 10 - fw_count)},
+        "fixed_window":   {"count": fw_count, "limit": 10, "remaining": max(0, 10 - fw_count)},
         "sliding_window": {"count": sw_count, "limit": 10, "remaining": max(0, 10 - sw_count)},
-        "token_bucket": {"tokens": round(tokens, 2), "capacity": 10},
+        "token_bucket":   {"tokens": round(tokens, 2), "capacity": 10},
     }
