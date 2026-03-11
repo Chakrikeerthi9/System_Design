@@ -1,0 +1,41 @@
+# ─── Python ───────────────────────────────
+.env
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+*.log
+
+# ─── Next.js / Node ───────────────────────
+portfolio/.env.local
+portfolio/.env
+portfolio/node_modules/
+portfolio/.next/
+portfolio/out/
+portfolio/.DS_Store
+portfolio/*.tsbuildinfo
+portfolio/next-env.d.ts
+
+# ─── Any future frontend folders ──────────
+**/node_modules/
+**/.next/
+**/.env.local
+**/.env
+
+# ─── OS ───────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Editor ───────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
