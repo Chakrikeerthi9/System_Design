@@ -33,7 +33,7 @@ const STRATEGIES = [
   },
 ];
 
-function RadialGauge({ value, max, color, label }) {
+function RadialGauge({ value, max, color, label }: { value: number; max: number; color: string; label: string }) {
   const pct = Math.min(value / max, 1);
   const r = 54;
   const circ = 2 * Math.PI * r;
@@ -53,7 +53,14 @@ function RadialGauge({ value, max, color, label }) {
   );
 }
 
-function LogEntry({ entry }) {
+interface LogEntry {
+  time: string;
+  strategy: string;
+  status: number;
+  msg: string;
+  id: number;
+}
+function LogEntry({ entry }: { entry: LogEntry }) {
   return (
     <div className={`log-entry ${entry.status === 429 ? "log-blocked" : "log-ok"}`}>
       <span className="log-time">{entry.time}</span>
@@ -94,7 +101,7 @@ export default function Dashboard() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
 
-  const addLog = (strategy, status, msg) => {
+  const addLog = (strategy: string, status: number, msg: string) => {
     const now = new Date();
     const time = now.toTimeString().slice(0, 8);
     setLogs((prev) => [...prev.slice(-49), { time, strategy, status, msg, id: Date.now() + Math.random() }]);
