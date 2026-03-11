@@ -25,8 +25,8 @@ interface About {
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-function useInView(threshold = 0.1): [RefObject<HTMLElement>, boolean] {
-  const ref = useRef<HTMLElement>(null);
+function useInView(threshold = 0.1): [RefObject<HTMLElement | null>, boolean] {
+  const ref = useRef<HTMLElement | null>(null);
   const [inView, setInView] = useState(false);
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -46,7 +46,7 @@ function Card({ p, index, onClick }: { p: Project; index: number; onClick: (p: P
 
   return (
     <article
-      ref={ref as RefObject<HTMLElement>}
+      ref={ref as RefObject<HTMLElement | null>}
       onClick={() => onClick(p)}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
@@ -96,7 +96,7 @@ function Slot({ num }: { num: number }) {
   const [ref, inView] = useInView();
   return (
     <div
-      ref={ref as RefObject<HTMLDivElement>}
+      ref={ref as RefObject<HTMLDivElement | null>}
       className="slot"
       style={{
         opacity: inView ? 1 : 0,
