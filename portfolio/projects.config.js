@@ -4,7 +4,7 @@ export const projects = [
     name: "Rate Limiter",
     topic: "API Rate Limiting",
     desc: "Fixed Window · Sliding Window · Token Bucket — Redis backed, production-grade.",
-    url: "https://your-rate-limiter.vercel.app",  // update after deploy
+    url: "https://ratelimiter1.vercel.app",
     color: "#00ff88",
     accent: "#003322",
     status: "live",
