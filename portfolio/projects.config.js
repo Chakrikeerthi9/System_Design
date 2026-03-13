@@ -6,14 +6,22 @@ export const projects = [
     desc: "Fixed Window · Sliding Window · Token Bucket — Redis backed, production-grade.",
     url: "https://ratelimiter1.vercel.app",
     color: "#00ff88",
-    accent: "#003322",
     status: "live",
     tags: ["FastAPI", "Redis", "Next.js"],
     designConcept: "How APIs protect themselves from abuse",
   },
-  // Project 2 onwards — just add here, card appears automatically
+  {
+    id: 2,
+    name: "Caching",
+    topic: "Cache Strategies",
+    desc: "In-Memory · Redis · LRU — live hit/miss tracking with eviction demo.",
+    url: "https://caching-sys.vercel.app",
+    color: "#00aaff",
+    status: "live",
+    tags: ["FastAPI", "Redis", "LRU", "Next.js"],
+    designConcept: "How systems avoid hitting the database every time",
+  },
 ];
-
 export const about = {
   name: "Chakri Keerthi",
   role: "Software Engineer · AI & Full Stack",
