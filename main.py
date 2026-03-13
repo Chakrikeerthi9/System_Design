@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rate_limiter.Backend.main import router as rate_limiter_router
+from caching.backend.main import router as cache_router
 # future imports — uncomment as you build each project:
 # from caching.backend.main import router as cache_router
 # from message_queue.backend.main import router as queue_router
@@ -21,6 +22,7 @@ app.add_middleware(
 
 # ─── Mount routers ───────────────────────────────────────────────────────────
 app.include_router(rate_limiter_router, prefix="/rate-limiter", tags=["Rate Limiter"])
+app.include_router(cache_router, prefix="/cache", tags=["Caching"])
 # app.include_router(cache_router,        prefix="/cache",        tags=["Caching"])
 # app.include_router(queue_router,        prefix="/queue",        tags=["Message Queue"])
 # app.include_router(url_router,          prefix="/url-shortener",tags=["URL Shortener"])
